@@ -5,6 +5,7 @@ packages:
   - git
   - jq
   - docker.io
+  - docker-compose-plugin
   - zsh
   - golang-go
   - unzip
@@ -64,6 +65,13 @@ write_files:
       cd packages/umbreld
       npm ci
 
+      echo "Rebuilding UI..."
+      cd /opt/umbrel/packages/ui
+      npm ci
+      npm run build
+      cp -r dist/* .
+      cd /opt/umbrel/packages/umbreld
+
       echo "Starting daemon..."
       systemctl start umbreld.service
       echo "OS Update complete."
@@ -119,6 +127,9 @@ runcmd:
 
   # Create data directory
   - mkdir -p /opt/umbrel/data
+
+  # Build UI
+  - cd /opt/umbrel/packages/ui && npm ci && npm run build && cp -r dist/* .
 
   # Stage the systemd service
   - systemctl daemon-reload
