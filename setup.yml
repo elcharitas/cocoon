@@ -14,6 +14,8 @@ packages:
   - nftables
   - openssl
   - ca-certificates
+  - ripgrep
+  - fd-find
 
 write_files:
   - path: /etc/systemd/system/umbreld.service
@@ -42,6 +44,7 @@ write_files:
       systemctl stop umbreld.service || true
 
       echo "Pulling Umbrel source..."
+      git config --global --add safe.directory /opt/umbrel
       cd /opt/umbrel
       git reset --hard HEAD
       git pull
@@ -100,6 +103,40 @@ runcmd:
   - curl -fsSL https://bun.sh/install | bash
   - /root/.bun/bin/bun install -g @openai/codex-cli
 
+  # Install Oh My Zsh (non-interactive) with git and docker plugins
+  - sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+  - sed -i 's/plugins=(git)/plugins=(git docker)/' /root/.zshrc
+
+  # Set zsh as default shell
+  - chsh -s $(which zsh)
+
+  # Add Go bin to PATH
+  - echo 'export PATH=$PATH:$(go env GOPATH)/bin' >> /root/.zshrc
+
+  # Docker auto-prune (weekly)
+  - |
+    cat << 'EOF' > /etc/systemd/system/docker-prune.service
+    [Unit]
+    Description=Docker system prune
+
+    [Service]
+    Type=oneshot
+    ExecStart=/usr/bin/docker system prune -af
+    EOF
+  - |
+    cat << 'EOF' > /etc/systemd/system/docker-prune.timer
+    [Unit]
+    Description=Weekly Docker system prune
+
+    [Timer]
+    OnCalendar=weekly
+    Persistent=true
+
+    [Install]
+    WantedBy=timers.target
+    EOF
+  - systemctl daemon-reload && systemctl enable docker-prune.timer
+
   # Generate GPG key
   - |
     cat << 'EOF' > /tmp/gpg-batch
@@ -123,6 +160,8 @@ runcmd:
   - git config --global user.name "elcharitas"
   - git config --global user.email "jonathanirhodia@gmail.com"
   - git config --global gpg.program gpg
+  - git config --global push.autoSetupRemote true
+  - git config --global rerere.enabled true
 
   # Print keys for GitHub setup
   - echo "=== Add this SSH public key to GitHub ==="
