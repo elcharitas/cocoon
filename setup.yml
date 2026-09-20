@@ -10,14 +10,19 @@ packages:
   - unzip
   - gnupg
   - build-essential
+  - network-manager
+  - avahi-daemon
+  - nftables
+  - openssl
 
 write_files:
   - path: /etc/systemd/system/umbreld.service
     content: |
       [Unit]
       Description=Patched Umbrel Daemon
-      After=docker.service
+      After=docker.service network-online.target
       Requires=docker.service
+      Wants=network-online.target
 
       [Service]
       WorkingDirectory=/opt/umbrel/packages/umbreld
@@ -111,6 +116,9 @@ runcmd:
   # Clone Umbrel repositories for the first time
   - git clone https://github.com/getumbrel/umbrel.git /opt/umbrel
   - git clone https://github.com/dockur/umbrel.git /tmp/dockur-umbrel
+
+  # Create data directory
+  - mkdir -p /opt/umbrel/data
 
   # Stage the systemd service
   - systemctl daemon-reload
