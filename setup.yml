@@ -9,6 +9,7 @@ packages:
   - golang-go
   - unzip
   - gnupg
+  - build-essential
 
 write_files:
   - path: /etc/systemd/system/umbreld.service
@@ -20,7 +21,7 @@ write_files:
 
       [Service]
       WorkingDirectory=/opt/umbrel/packages/umbreld
-      ExecStart=/usr/bin/npm start
+      ExecStart=/usr/bin/npm start -- --data-directory /opt/umbrel/data
       Restart=always
       Environment="NODE_ENV=production"
 
@@ -46,9 +47,13 @@ write_files:
 
       echo "Applying patches..."
       cd /opt/umbrel
-      sed -i 's/umbrelOS/Debian/g' packages/daemon/src/utils/system.ts || true
-      sed -i 's/reboot/echo "Reboot disabled"/g' packages/daemon/src/utils/system.ts || true
+      sed -i 's/umbrelOS/Debian/g' packages/umbreld/source/modules/system/system.ts || true
       if [ -d "/tmp/dockur-umbrel/src" ]; then cp -r /tmp/dockur-umbrel/src/* /opt/umbrel/; fi
+
+      echo "Disabling reboot..."
+      mv /usr/sbin/reboot /usr/sbin/reboot.bak 2>/dev/null || true
+      printf '#!/bin/sh\necho "Reboot disabled"\n' > /usr/sbin/reboot
+      chmod +x /usr/sbin/reboot
 
       echo "Installing dependencies..."
       cd packages/umbreld
@@ -60,7 +65,7 @@ write_files:
 
 runcmd:
   # Install Node.js
-  - curl -fsSL https://deb.nodesource.com/setup_26.x | bash -
+  - curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
   - apt-get install -y nodejs
 
   # Install gh cli
@@ -71,7 +76,7 @@ runcmd:
 
   # Install Openai Codex CLI & Bun
   - curl -fsSL https://bun.sh/install | bash
-  - bun install -g @openai/codex-cli
+  - /root/.bun/bin/bun install -g @openai/codex-cli
 
   # Generate GPG key
   - |
