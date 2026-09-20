@@ -1,0 +1,85 @@
+#cloud-config
+package_update: true
+packages:
+  - curl
+  - git
+  - jq
+  - docker.io
+  - zsh
+  - golang-go
+
+write_files:
+  - path: /etc/systemd/system/umbreld.service
+    content: |
+      [Unit]
+      Description=Patched Umbrel Daemon
+      After=docker.service
+      Requires=docker.service
+
+      [Service]
+      WorkingDirectory=/opt/umbrel
+      ExecStart=/usr/bin/npm start
+      Restart=always
+      Environment="NODE_ENV=production"
+
+      [Install]
+      WantedBy=multi-user.target
+
+  - path: /usr/local/bin/update-os
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      set -e
+      echo "Stopping daemon..."
+      systemctl stop umbreld.service || true
+
+      echo "Pulling Umbrel source..."
+      cd /opt/umbrel
+      git reset --hard HEAD
+      git pull
+
+      echo "Pulling patches..."
+      cd /tmp/dockur-umbrel
+      git pull
+
+      echo "Applying patches..."
+      cd /opt/umbrel
+      sed -i 's/umbrelOS/Debian/g' packages/daemon/src/utils/system.ts || true
+      sed -i 's/reboot/echo "Reboot disabled"/g' packages/daemon/src/utils/system.ts || true
+      if [ -d "/tmp/dockur-umbrel/src" ]; then cp -r /tmp/dockur-umbrel/src/* /opt/umbrel/; fi
+
+      echo "Compiling..."
+      npm ci
+      npm run build
+
+      echo "Starting daemon..."
+      systemctl start umbreld.service
+      echo "OS Update complete."
+
+runcmd:
+  # Install Node.js
+  - curl -fsSL https://deb.nodesource.com/setup_26.x | bash -
+  - apt-get install -y nodejs
+
+  # Install gh cli
+  - curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | gpg --dearmor -o /usr/share/keyrings/githubcli-archive-keyring.gpg
+  - echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+  - apt-get update
+  - apt-get install -y gh
+
+  # Install Openai Codex CLI & Bun
+  - curl -fsSL https://bun.sh/install | bash
+  - bun install -g @openai/codex-cli
+
+  # Clone Umbrel repositories for the first time
+  - git clone https://github.com/getumbrel/umbrel.git /opt/umbrel
+  - git clone https://github.com/dockur/umbrel.git /tmp/dockur-umbrel
+
+  # Stage the systemd service
+  - systemctl daemon-reload
+
+  # Execute the global script for the initial build
+  - /usr/local/bin/update-os
+
+  # Ensure it starts on boot
+  - systemctl enable umbreld.service
