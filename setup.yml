@@ -19,6 +19,7 @@ packages:
   - rsync
   - yq
   - gettext-base
+  - locales
 
 write_files:
   - path: /etc/systemd/system/umbreld.service
@@ -112,6 +113,11 @@ runcmd:
 
   # Set zsh as default shell
   - chsh -s $(which zsh)
+
+  # Fix locale
+  - sed -i 's/# en_US.UTF-8/en_US.UTF-8/' /etc/locale.gen
+  - locale-gen en_US.UTF-8
+  - update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
 
   # Add Go bin to PATH
   - echo 'export PATH=$PATH:$(go env GOPATH)/bin' >> /root/.zshrc
