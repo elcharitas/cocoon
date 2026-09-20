@@ -16,6 +16,9 @@ packages:
   - ca-certificates
   - ripgrep
   - fd-find
+  - rsync
+  - yq
+  - gettext-base
 
 write_files:
   - path: /etc/systemd/system/umbreld.service
