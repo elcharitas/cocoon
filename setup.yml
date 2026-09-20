@@ -69,7 +69,8 @@ write_files:
       npm ci
       npm install @tsconfig/node22
       npm run build
-      cp -r dist/* .
+      mkdir -p /opt/umbrel/packages/umbreld/ui
+      cp -r dist/* /opt/umbrel/packages/umbreld/ui/
       cd /opt/umbrel/packages/umbreld
 
       echo "Starting daemon..."
@@ -137,7 +138,7 @@ runcmd:
   - mkdir -p /opt/umbrel/data
 
   # Build UI
-  - cd /opt/umbrel/packages/ui && npm ci && npm install @tsconfig/node22 && npm run build && cp -r dist/* .
+  - cd /opt/umbrel/packages/ui && npm ci && npm install @tsconfig/node22 && npm run build && mkdir -p /opt/umbrel/packages/umbreld/ui && cp -r dist/* /opt/umbrel/packages/umbreld/ui/
 
   # Stage the systemd service
   - systemctl daemon-reload
