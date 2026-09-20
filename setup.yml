@@ -7,6 +7,8 @@ packages:
   - docker.io
   - zsh
   - golang-go
+  - unzip
+  - gnupg
 
 write_files:
   - path: /etc/systemd/system/umbreld.service
@@ -17,7 +19,7 @@ write_files:
       Requires=docker.service
 
       [Service]
-      WorkingDirectory=/opt/umbrel
+      WorkingDirectory=/opt/umbrel/packages/umbreld
       ExecStart=/usr/bin/npm start
       Restart=always
       Environment="NODE_ENV=production"
@@ -48,9 +50,9 @@ write_files:
       sed -i 's/reboot/echo "Reboot disabled"/g' packages/daemon/src/utils/system.ts || true
       if [ -d "/tmp/dockur-umbrel/src" ]; then cp -r /tmp/dockur-umbrel/src/* /opt/umbrel/; fi
 
-      echo "Compiling..."
+      echo "Installing dependencies..."
+      cd packages/umbreld
       npm ci
-      npm run build
 
       echo "Starting daemon..."
       systemctl start umbreld.service
