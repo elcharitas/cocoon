@@ -25,7 +25,7 @@ write_files:
   - path: /etc/systemd/system/umbreld.service
     content: |
       [Unit]
-      Description=Patched Umbrel Daemon
+      Description=Umbrel Daemon
       After=docker.service network-online.target
       Requires=docker.service
       Wants=network-online.target
@@ -52,15 +52,6 @@ write_files:
       cd /opt/umbrel
       git reset --hard HEAD
       git pull
-
-      echo "Pulling patches..."
-      cd /tmp/dockur-umbrel
-      git pull
-
-      echo "Applying patches..."
-      cd /opt/umbrel
-      sed -i 's/umbrelOS/Debian/g' packages/umbreld/source/modules/system/system.ts || true
-      if [ -d "/tmp/dockur-umbrel/src" ]; then cp -r /tmp/dockur-umbrel/src/* /opt/umbrel/; fi
 
       echo "Disabling reboot..."
       mv /usr/sbin/reboot /usr/sbin/reboot.bak 2>/dev/null || true
@@ -178,9 +169,8 @@ runcmd:
   - echo "=== Add this GPG public key to GitHub ==="
   - gpg --armor --export jonathanirhodia@gmail.com
 
-  # Clone Umbrel repositories for the first time
+  # Clone Umbrel repository
   - git clone https://github.com/getumbrel/umbrel.git /opt/umbrel
-  - git clone https://github.com/dockur/umbrel.git /tmp/dockur-umbrel
 
   # Create data directory
   - mkdir -p /opt/umbrel/data
